@@ -35,7 +35,7 @@ async function getMongoCollection() {
   const { MongoClient } = await import("mongodb");
   const client = new MongoClient(process.env.MONGODB_URI);
   await client.connect();
-  const db = client.db(process.env.MONGODB_DB || "halloween_alzare");
+  const db = client.db(process.env.DB_NAME || process.env.MONGODB_DB || "halloween_alzare");
   return { client, collection: db.collection<HalloweenData>("site_data") };
 }
 

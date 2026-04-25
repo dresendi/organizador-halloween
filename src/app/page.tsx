@@ -2,6 +2,8 @@ import Link from "next/link";
 import { HalloweenMap } from "@/app/components/halloween-map";
 import { getHalloweenData } from "@/lib/store";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const data = await getHalloweenData();
   const total = data.participants.reduce((sum, participant) => sum + participant.count, 0);
