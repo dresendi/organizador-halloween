@@ -13,7 +13,7 @@ function requireNumber(value: FormDataEntryValue | null) {
 }
 
 export async function loginAction(formData: FormData) {
-  const username = String(formData.get("username") || "");
+  const username = String(formData.get("username") || "").trim();
   const password = String(formData.get("password") || "");
   if (!verifyPassword(username, password)) {
     redirect("/login?error=1");

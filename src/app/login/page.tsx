@@ -1,5 +1,3 @@
-import { loginAction } from "@/app/actions";
-
 export default async function Login({
   searchParams
 }: {
@@ -9,7 +7,7 @@ export default async function Login({
 
   return (
     <main className="login-page">
-      <form className="login-card" action={loginAction}>
+      <form className="login-card" action="/api/login" method="post">
         <p className="eyebrow">Acceso privado</p>
         <h1>Solo administradores</h1>
         {params.error ? <p className="error">Usuario o contrasena incorrectos.</p> : null}

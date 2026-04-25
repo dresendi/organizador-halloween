@@ -7,10 +7,24 @@ type Props = {
   admin?: boolean;
 };
 
-const laneGrid: CSSProperties = {
+const blockWidth = 256;
+const streetGap = 48;
+const sideStreet = 44;
+const boardWidth = blockWidth * 5 + streetGap * 4 + sideStreet * 2;
+
+const boardStyle: CSSProperties = {
+  position: "relative",
+  width: boardWidth,
+  maxWidth: "none",
+  padding: `4px ${sideStreet}px 0`
+};
+
+const gridStyle: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "42px repeat(5, minmax(0, 1fr) 42px)",
-  alignItems: "stretch"
+  gridTemplateColumns: `repeat(5, ${blockWidth}px)`,
+  columnGap: streetGap,
+  position: "relative",
+  zIndex: 1
 };
 
 export function HalloweenMap({ participants, admin = false }: Props) {
@@ -20,64 +34,117 @@ export function HalloweenMap({ participants, admin = false }: Props) {
 
   return (
     <section className="map-shell" aria-label="Croquis Halloween Alzare">
-      <div className="croquis-board">
-        <StreetRow>CALLE 57</StreetRow>
-        <Lane blocks={upperBlocks} participantByHouse={participantByHouse} admin={admin} variant="open" />
-        <StreetRow>CALLE 57B</StreetRow>
-        <Lane blocks={upperBlocks} participantByHouse={participantByHouse} admin={admin} variant="compact" showStreets />
-        <StreetRow>CALLE 59</StreetRow>
-        <Lane blocks={lowerBlocks} participantByHouse={participantByHouse} admin={admin} variant="open" />
+      <div className="croquis-board" style={boardStyle}>
+        <StreetLabel variant="horizontal" top={86}>
+          CALLE 57
+        </StreetLabel>
+        <StreetLabel variant="horizontal" top={330}>
+          CALLE 57B
+        </StreetLabel>
+        <StreetLabel variant="horizontal" top={568}>
+          CALLE 59
+        </StreetLabel>
+        <StreetLabel variant="vertical" left={0}>
+          CALLE 82
+        </StreetLabel>
+        <StreetLabel variant="vertical" left={302}>
+          CALLE 80A
+        </StreetLabel>
+        <StreetLabel variant="vertical" left={606}>
+          CALLE 80
+        </StreetLabel>
+        <StreetLabel variant="vertical" left={910}>
+          CALLE 78A
+        </StreetLabel>
+        <StreetLabel variant="vertical" left={1214}>
+          CALLE 78
+        </StreetLabel>
+        <StreetLabel variant="vertical" right={0}>
+          CALLE 76A
+        </StreetLabel>
+
+        <div className="block-grid top-neighborhood" style={gridStyle}>
+          {upperBlocks.map((block) => (
+            <article className="map-block" key={block.id}>
+              <HouseRow houses={block.top} participantByHouse={participantByHouse} admin={admin} />
+              <div className="block-yard" aria-hidden="true" />
+              <HouseRow houses={block.bottom} participantByHouse={participantByHouse} admin={admin} />
+            </article>
+          ))}
+        </div>
+
+        <div className="block-grid middle-neighborhood" style={{ ...gridStyle, marginTop: 46 }}>
+          {upperBlocks.map((block) => (
+            <article className="map-block compact" key={`${block.id}-middle`} style={{ display: "grid", gap: 24 }}>
+              <HouseRow houses={block.top} participantByHouse={participantByHouse} admin={admin} />
+              <HouseRow houses={block.bottom} participantByHouse={participantByHouse} admin={admin} />
+            </article>
+          ))}
+        </div>
+
+        <div className="block-grid bottom-neighborhood" style={{ ...gridStyle, marginTop: 46 }}>
+          {lowerBlocks.map((block) => (
+            <article className="map-block" key={block.id}>
+              <HouseRow houses={block.top} participantByHouse={participantByHouse} admin={admin} />
+              <div className="block-yard" aria-hidden="true" />
+              <HouseRow houses={block.bottom} participantByHouse={participantByHouse} admin={admin} />
+            </article>
+          ))}
+        </div>
       </div>
     </section>
   );
 }
 
-function StreetRow({ children }: { children: string }) {
-  return <div className="map-street-row">{children}</div>;
-}
-
-function Lane({
-  blocks,
-  participantByHouse,
-  admin,
+function StreetLabel({
   variant,
-  showStreets = false
+  top,
+  left,
+  right,
+  children
 }: {
-  blocks: typeof mapBlocks;
-  participantByHouse: Map<number, Participant>;
-  admin: boolean;
-  variant: "open" | "compact";
-  showStreets?: boolean;
+  variant: "horizontal" | "vertical";
+  top?: number;
+  left?: number;
+  right?: number;
+  children: ReactNode;
 }) {
-  const streets = ["CALLE 82", "CALLE 80A", "CALLE 80", "CALLE 78A", "CALLE 78", "CALLE 76A"];
+  const style: CSSProperties =
+    variant === "horizontal"
+      ? {
+          position: "absolute",
+          left: sideStreet,
+          right: sideStreet,
+          top,
+          color: "#111",
+          fontSize: "2.25rem",
+          fontWeight: 900,
+          lineHeight: 1,
+          textAlign: "center",
+          zIndex: 2,
+          pointerEvents: "none"
+        }
+      : {
+          position: "absolute",
+          top: 232,
+          left,
+          right,
+          width: 44,
+          height: 238,
+          display: "grid",
+          placeItems: "center",
+          color: "#111",
+          fontSize: "2rem",
+          fontWeight: 900,
+          lineHeight: 1,
+          textAlign: "center",
+          writingMode: "vertical-rl",
+          transform: "rotate(180deg)",
+          zIndex: 2,
+          pointerEvents: "none"
+        };
 
-  return (
-    <div className={`map-lane ${variant === "compact" ? "compact-lane" : ""}`} style={laneGrid}>
-      {blocks.map((block, index) => (
-        <FragmentBlock key={block.id}>
-          <VerticalStreet visible={showStreets}>{streets[index]}</VerticalStreet>
-          <article className={`map-block ${variant === "compact" ? "compact" : ""}`}>
-            <HouseRow houses={block.top} participantByHouse={participantByHouse} admin={admin} />
-            {variant === "open" ? <div className="block-yard" aria-hidden="true" /> : null}
-            <HouseRow houses={block.bottom} participantByHouse={participantByHouse} admin={admin} />
-          </article>
-          {index === blocks.length - 1 ? <VerticalStreet visible={showStreets}>{streets[index + 1]}</VerticalStreet> : null}
-        </FragmentBlock>
-      ))}
-    </div>
-  );
-}
-
-function FragmentBlock({ children }: { children: ReactNode }) {
-  return <>{children}</>;
-}
-
-function VerticalStreet({ visible, children }: { visible: boolean; children: string }) {
-  return (
-    <div className="map-vertical-street" aria-hidden={!visible}>
-      {visible ? children : null}
-    </div>
-  );
+  return <div style={style}>{children}</div>;
 }
 
 function HouseRow({
