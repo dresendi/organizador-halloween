@@ -113,44 +113,29 @@ textarea {
 .map-shell {
   position: relative;
   margin: 26px auto;
-  max-width: 1540px;
-  padding: 16px;
+  max-width: 1480px;
+  padding: 14px;
   border: 2px solid rgba(255, 138, 31, 0.45);
   border-radius: 8px;
   background: rgba(255, 250, 238, 0.95);
   color: #111;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
-  overflow-x: auto;
+  overflow: hidden;
 }
 
 .croquis-board {
-  --block-width: 256px;
-  --street-gap: 48px;
-  --side-street: 44px;
-  --row-gap: 46px;
-  position: relative;
-  min-width: calc((var(--block-width) * 5) + (var(--street-gap) * 4) + (var(--side-street) * 2));
-  padding: 4px var(--side-street) 0;
-}
-
-.block-grid {
   display: grid;
-  grid-template-columns: repeat(5, var(--block-width));
-  column-gap: var(--street-gap);
-  position: relative;
-  z-index: 1;
+  gap: 10px;
+  width: 100%;
 }
 
-.top-neighborhood {
-  padding-top: 0;
-}
-
-.middle-neighborhood {
-  margin-top: var(--row-gap);
-}
-
-.bottom-neighborhood {
-  margin-top: var(--row-gap);
+.map-street-row {
+  min-height: 38px;
+  color: #111;
+  font-size: clamp(1.55rem, 3vw, 2.35rem);
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
 }
 
 .map-block {
@@ -159,13 +144,36 @@ textarea {
 
 .map-block.compact {
   display: grid;
-  gap: 24px;
+  gap: 12px;
+}
+
+.map-lane {
+  width: 100%;
+}
+
+.compact-lane {
+  align-items: center;
+}
+
+.map-vertical-street {
+  display: grid;
+  min-width: 0;
+  place-items: center;
+  color: #111;
+  font-size: clamp(1.4rem, 2.2vw, 2.1rem);
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  overflow: visible;
+  white-space: nowrap;
 }
 
 .house-row {
   display: grid;
-  grid-template-columns: repeat(8, minmax(28px, 1fr));
-  min-height: 52px;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  min-height: clamp(34px, 4.8vw, 52px);
   border-left: 1px solid #333;
   border-top: 1px solid #333;
 }
@@ -174,12 +182,12 @@ textarea {
   position: relative;
   display: grid;
   place-items: start center;
-  min-height: 52px;
+  min-height: clamp(34px, 4.8vw, 52px);
   padding-top: 4px;
   border-right: 1px solid #333;
   border-bottom: 1px solid #333;
   background: #fffdf7;
-  font-size: 1rem;
+  font-size: clamp(0.68rem, 1.22vw, 1rem);
 }
 
 .house.participating {
@@ -189,7 +197,7 @@ textarea {
 .pumpkin {
   position: absolute;
   bottom: 1px;
-  font-size: 1.22rem;
+  font-size: clamp(0.9rem, 1.55vw, 1.22rem);
   filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.35));
 }
 
@@ -207,73 +215,9 @@ textarea {
 
 .block-yard {
   display: grid;
-  min-height: 110px;
+  min-height: clamp(54px, 8vw, 104px);
   place-items: center;
   border-inline: 1px solid #333;
-}
-
-.horizontal-street,
-.vertical-street {
-  position: absolute;
-  color: #111;
-  font-weight: 900;
-  line-height: 1;
-  text-align: center;
-  z-index: 2;
-  pointer-events: none;
-}
-
-.horizontal-street {
-  left: var(--side-street);
-  right: var(--side-street);
-  font-size: 2.25rem;
-}
-
-.street-57 {
-  top: 86px;
-}
-
-.street-57b {
-  top: 330px;
-}
-
-.street-59 {
-  top: 568px;
-}
-
-.vertical-street {
-  top: 232px;
-  height: 238px;
-  width: 44px;
-  display: grid;
-  place-items: center;
-  font-size: 2rem;
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-}
-
-.street-82 {
-  left: 0;
-}
-
-.street-80a {
-  left: calc(var(--side-street) + var(--block-width) + 2px);
-}
-
-.street-80 {
-  left: calc(var(--side-street) + (var(--block-width) * 2) + var(--street-gap) + 2px);
-}
-
-.street-78a {
-  left: calc(var(--side-street) + (var(--block-width) * 3) + (var(--street-gap) * 2) + 2px);
-}
-
-.street-78 {
-  left: calc(var(--side-street) + (var(--block-width) * 4) + (var(--street-gap) * 3) + 2px);
-}
-
-.street-76a {
-  right: 0;
 }
 
 .street-names {

@@ -29,9 +29,13 @@ const defaultData: HalloweenData = {
 };
 
 const dataFile = path.join(process.cwd(), "data", "halloween-data.json");
+const mongoRetryDelay = 60_000;
+let mongoUnavailableUntil = 0;
 
 async function getMongoCollection() {
   if (!process.env.MONGODB_URI) return null;
+  if (Date.now() < mongoUnavailableUntil) return null;
+  await ensureSrvCanResolve(process.env.MONGODB_URI);
   const { MongoClient } = await import("mongodb");
   const client = new MongoClient(process.env.MONGODB_URI, {
     serverSelectionTimeoutMS: 2000
@@ -41,8 +45,19 @@ async function getMongoCollection() {
   return { client, collection: db.collection<HalloweenData>("site_data") };
 }
 
+async function ensureSrvCanResolve(uri: string) {
+  if (!uri.startsWith("mongodb+srv://")) return;
+  const hostname = new URL(uri).hostname;
+  const { resolveSrv } = await import("dns/promises");
+  await Promise.race([
+    resolveSrv(`_mongodb._tcp.${hostname}`),
+    new Promise((_, reject) => setTimeout(() => reject(new Error(`DNS timeout para ${hostname}`)), 1500))
+  ]);
+}
+
 function logMongoFallback(error: unknown) {
   const message = error instanceof Error ? error.message : "Error desconocido";
+  mongoUnavailableUntil = Date.now() + mongoRetryDelay;
   console.warn(`MongoDB no disponible, usando almacenamiento local: ${message}`);
 }
 
