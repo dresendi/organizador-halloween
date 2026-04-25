@@ -33,10 +33,17 @@ const dataFile = path.join(process.cwd(), "data", "halloween-data.json");
 async function getMongoCollection() {
   if (!process.env.MONGODB_URI) return null;
   const { MongoClient } = await import("mongodb");
-  const client = new MongoClient(process.env.MONGODB_URI);
+  const client = new MongoClient(process.env.MONGODB_URI, {
+    serverSelectionTimeoutMS: 2000
+  });
   await client.connect();
   const db = client.db(process.env.DB_NAME || process.env.MONGODB_DB || "halloween_alzare");
   return { client, collection: db.collection<HalloweenData>("site_data") };
+}
+
+function logMongoFallback(error: unknown) {
+  const message = error instanceof Error ? error.message : "Error desconocido";
+  console.warn(`MongoDB no disponible, usando almacenamiento local: ${message}`);
 }
 
 async function readLocalData(): Promise<HalloweenData> {
@@ -55,16 +62,20 @@ async function writeLocalData(data: HalloweenData) {
 }
 
 export async function getHalloweenData(): Promise<HalloweenData> {
-  const mongo = await getMongoCollection();
-  if (mongo) {
-    try {
-      const data = await mongo.collection.findOne({});
-      if (data) return { participants: data.participants, content: data.content };
-      await mongo.collection.insertOne(defaultData);
-      return defaultData;
-    } finally {
-      await mongo.client.close();
+  try {
+    const mongo = await getMongoCollection();
+    if (mongo) {
+      try {
+        const data = await mongo.collection.findOne({});
+        if (data) return { participants: data.participants, content: data.content };
+        await mongo.collection.insertOne(defaultData);
+        return defaultData;
+      } finally {
+        await mongo.client.close();
+      }
     }
+  } catch (error) {
+    logMongoFallback(error);
   }
   return readLocalData();
 }
@@ -92,14 +103,18 @@ export async function saveContent(news: string[], rules: string[]) {
 }
 
 async function saveData(data: HalloweenData) {
-  const mongo = await getMongoCollection();
-  if (mongo) {
-    try {
-      await mongo.collection.updateOne({}, { $set: data }, { upsert: true });
-      return;
-    } finally {
-      await mongo.client.close();
+  try {
+    const mongo = await getMongoCollection();
+    if (mongo) {
+      try {
+        await mongo.collection.updateOne({}, { $set: data }, { upsert: true });
+        return;
+      } finally {
+        await mongo.client.close();
+      }
     }
+  } catch (error) {
+    logMongoFallback(error);
   }
   await writeLocalData(data);
 }
