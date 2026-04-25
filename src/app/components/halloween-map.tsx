@@ -1,9 +1,30 @@
+import type { CSSProperties, ReactNode } from "react";
 import { mapBlocks } from "@/lib/map-data";
 import type { Participant } from "@/lib/types";
 
 type Props = {
   participants: Participant[];
   admin?: boolean;
+};
+
+const blockWidth = 256;
+const streetGap = 48;
+const sideStreet = 44;
+const boardWidth = blockWidth * 5 + streetGap * 4 + sideStreet * 2;
+
+const boardStyle: CSSProperties = {
+  position: "relative",
+  width: boardWidth,
+  maxWidth: "none",
+  padding: `4px ${sideStreet}px 0`
+};
+
+const gridStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: `repeat(5, ${blockWidth}px)`,
+  columnGap: streetGap,
+  position: "relative",
+  zIndex: 1
 };
 
 export function HalloweenMap({ participants, admin = false }: Props) {
@@ -13,18 +34,36 @@ export function HalloweenMap({ participants, admin = false }: Props) {
 
   return (
     <section className="map-shell" aria-label="Croquis Halloween Alzare">
-      <div className="croquis-board">
-        <div className="horizontal-street street-57">CALLE 57</div>
-        <div className="horizontal-street street-57b">CALLE 57B</div>
-        <div className="horizontal-street street-59">CALLE 59</div>
-        <div className="vertical-street street-82">CALLE 82</div>
-        <div className="vertical-street street-80a">CALLE 80A</div>
-        <div className="vertical-street street-80">CALLE 80</div>
-        <div className="vertical-street street-78a">CALLE 78A</div>
-        <div className="vertical-street street-78">CALLE 78</div>
-        <div className="vertical-street street-76a">CALLE 76A</div>
+      <div className="croquis-board" style={boardStyle}>
+        <StreetLabel variant="horizontal" top={86}>
+          CALLE 57
+        </StreetLabel>
+        <StreetLabel variant="horizontal" top={330}>
+          CALLE 57B
+        </StreetLabel>
+        <StreetLabel variant="horizontal" top={568}>
+          CALLE 59
+        </StreetLabel>
+        <StreetLabel variant="vertical" left={0}>
+          CALLE 82
+        </StreetLabel>
+        <StreetLabel variant="vertical" left={302}>
+          CALLE 80A
+        </StreetLabel>
+        <StreetLabel variant="vertical" left={606}>
+          CALLE 80
+        </StreetLabel>
+        <StreetLabel variant="vertical" left={910}>
+          CALLE 78A
+        </StreetLabel>
+        <StreetLabel variant="vertical" left={1214}>
+          CALLE 78
+        </StreetLabel>
+        <StreetLabel variant="vertical" right={0}>
+          CALLE 76A
+        </StreetLabel>
 
-        <div className="block-grid top-neighborhood">
+        <div className="block-grid top-neighborhood" style={gridStyle}>
           {upperBlocks.map((block) => (
             <article className="map-block" key={block.id}>
               <HouseRow houses={block.top} participantByHouse={participantByHouse} admin={admin} />
@@ -34,16 +73,16 @@ export function HalloweenMap({ participants, admin = false }: Props) {
           ))}
         </div>
 
-        <div className="block-grid middle-neighborhood">
+        <div className="block-grid middle-neighborhood" style={{ ...gridStyle, marginTop: 46 }}>
           {upperBlocks.map((block) => (
-            <article className="map-block compact" key={`${block.id}-middle`}>
+            <article className="map-block compact" key={`${block.id}-middle`} style={{ display: "grid", gap: 24 }}>
               <HouseRow houses={block.top} participantByHouse={participantByHouse} admin={admin} />
               <HouseRow houses={block.bottom} participantByHouse={participantByHouse} admin={admin} />
             </article>
           ))}
         </div>
 
-        <div className="block-grid bottom-neighborhood">
+        <div className="block-grid bottom-neighborhood" style={{ ...gridStyle, marginTop: 46 }}>
           {lowerBlocks.map((block) => (
             <article className="map-block" key={block.id}>
               <HouseRow houses={block.top} participantByHouse={participantByHouse} admin={admin} />
@@ -55,6 +94,57 @@ export function HalloweenMap({ participants, admin = false }: Props) {
       </div>
     </section>
   );
+}
+
+function StreetLabel({
+  variant,
+  top,
+  left,
+  right,
+  children
+}: {
+  variant: "horizontal" | "vertical";
+  top?: number;
+  left?: number;
+  right?: number;
+  children: ReactNode;
+}) {
+  const style: CSSProperties =
+    variant === "horizontal"
+      ? {
+          position: "absolute",
+          left: sideStreet,
+          right: sideStreet,
+          top,
+          color: "#111",
+          fontSize: "2.25rem",
+          fontWeight: 900,
+          lineHeight: 1,
+          textAlign: "center",
+          zIndex: 2,
+          pointerEvents: "none"
+        }
+      : {
+          position: "absolute",
+          top: 232,
+          left,
+          right,
+          width: 44,
+          height: 238,
+          display: "grid",
+          placeItems: "center",
+          color: "#111",
+          fontSize: "2rem",
+          fontWeight: 900,
+          lineHeight: 1,
+          textAlign: "center",
+          writingMode: "vertical-rl",
+          transform: "rotate(180deg)",
+          zIndex: 2,
+          pointerEvents: "none"
+        };
+
+  return <div style={style}>{children}</div>;
 }
 
 function HouseRow({
@@ -79,7 +169,7 @@ function HouseRow({
                 title={`${participant.count} participante(s) registrados`}
                 aria-label={`${house.number} participa con ${participant.count} participante(s)`}
               >
-                🎃
+                {"\u{1F383}"}
               </span>
             ) : null}
             {admin ? <small>{participant?.count || ""}</small> : null}
