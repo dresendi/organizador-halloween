@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { HalloweenMap } from "@/app/components/halloween-map";
 import { getHalloweenData } from "@/lib/store";
 
@@ -47,7 +46,7 @@ export default async function Home() {
       </section>
 
       <footer>
-        <Link href="/login">Solo administradores</Link>
+        <a href="/login">Solo administradores</a>
       </footer>
     </main>
   );
