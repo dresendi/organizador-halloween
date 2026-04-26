@@ -28,3 +28,17 @@ export const mapBlocks: MapBlock[] = [
 export const allHouseNumbers = Array.from(
   new Set(mapBlocks.flatMap((block) => [...block.top, ...block.bottom].map((house) => house.number)))
 ).sort((a, b) => b - a);
+
+const primaryStreetSectors = mapBlocks.slice(0, 5).flatMap((block) =>
+  [...block.top, ...block.bottom].map((house) => [house.number, block.label] as const)
+);
+
+const houseStreetByNumber = new Map<number, string>(primaryStreetSectors);
+
+export function getHouseStreetLabel(houseNumber: number) {
+  return houseStreetByNumber.get(houseNumber) || "Calle sin asignar";
+}
+
+export function formatHouseLocation(houseNumber: number) {
+  return `${getHouseStreetLabel(houseNumber)} - Casa ${houseNumber}`;
+}

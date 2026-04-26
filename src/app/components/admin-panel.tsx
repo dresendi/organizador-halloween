@@ -1,6 +1,6 @@
 import { deleteParticipantAction, saveContentAction, upsertParticipantAction } from "@/app/actions";
 import { HalloweenMap } from "@/app/components/halloween-map";
-import { allHouseNumbers } from "@/lib/map-data";
+import { allHouseNumbers, formatHouseLocation, getHouseStreetLabel } from "@/lib/map-data";
 import type { HalloweenData } from "@/lib/types";
 
 export function AdminPanel({ data, username }: { data: HalloweenData; username: string }) {
@@ -27,7 +27,7 @@ export function AdminPanel({ data, username }: { data: HalloweenData; username: 
             <select name="houseNumber" required>
               {allHouseNumbers.map((number) => (
                 <option key={number} value={number}>
-                  {number}
+                  {formatHouseLocation(number)}
                 </option>
               ))}
             </select>
@@ -62,8 +62,10 @@ export function AdminPanel({ data, username }: { data: HalloweenData; username: 
             <form action={deleteParticipantAction} className="participant-row" key={participant.houseNumber}>
               <input type="hidden" name="houseNumber" value={participant.houseNumber} />
               <span>
-                <strong>Casa {participant.houseNumber}</strong>
-                <small>{participant.count} participante(s)</small>
+                <strong>{formatHouseLocation(participant.houseNumber)}</strong>
+                <small>
+                  {getHouseStreetLabel(participant.houseNumber)} - {participant.count} participante(s)
+                </small>
               </span>
               <button type="submit" className="danger">
                 Borrar

@@ -38,3 +38,16 @@ Si existe la coleccion vieja `site_data`, la app migra esos datos automaticament
 ## Administradores iniciales
 
 Los usuarios iniciales son `Adminstrador1`, `Adminstrador2` y `Adminstrador3`. Tambien se aceptan `Administrador1`, `Administrador2` y `Administrador3`. Sus contrasenas estan hasheadas con PBKDF2 en el codigo; cambia estas credenciales antes de publicar en produccion.
+
+## Despliegue en Vercel
+
+El proyecto esta preparado para Vercel como una app Next.js. Configura estas variables en Vercel Project Settings antes del primer despliegue:
+
+```env
+MONGODB_URI=mongodb+srv://...
+DB_NAME=halloween_alzare
+MONGODB_DB=halloween_alzare
+AUTH_SECRET=una-cadena-larga-y-secreta
+```
+
+No subas `.env.local`; esta ignorado por git. Vercel usara `npm install` y `npm run build` segun `vercel.json`.
