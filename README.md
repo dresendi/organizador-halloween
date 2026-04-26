@@ -51,3 +51,5 @@ AUTH_SECRET=una-cadena-larga-y-secreta
 ```
 
 No subas `.env.local`; esta ignorado por git. Vercel usara `npm install` y `npm run build` segun `vercel.json`.
+
+En Vercel el filesystem del despliegue es de solo lectura. Si MongoDB no esta configurado o falla, la app usara `/tmp/halloween-data.json` solo como respaldo temporal para evitar errores, pero esos datos no son persistentes entre invocaciones. Para persistencia real configura `MONGODB_URI` y `DB_NAME` en Vercel.

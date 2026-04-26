@@ -49,7 +49,8 @@ const defaultData: HalloweenData = {
   }
 };
 
-const dataFile = path.join(process.cwd(), "data", "halloween-data.json");
+const localDataDirectory = process.env.VERCEL ? "/tmp" : path.join(process.cwd(), "data");
+const dataFile = path.join(localDataDirectory, "halloween-data.json");
 const mongoRetryDelay = 60_000;
 let mongoUnavailableUntil = 0;
 let indexesReady = false;
