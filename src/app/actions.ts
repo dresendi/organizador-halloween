@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { clearSession, createSession, getAdminUser, verifyPassword } from "@/lib/auth";
-import { allHouseNumbers } from "@/lib/map-data";
+import { allHouseLocationIds, getHouseLocation } from "@/lib/map-data";
 import { deleteParticipant, saveContent, saveParticipant } from "@/lib/store";
 
 function requireNumber(value: FormDataEntryValue | null) {
@@ -30,11 +30,18 @@ export async function logoutAction() {
 export async function upsertParticipantAction(formData: FormData) {
   const admin = await getAdminUser();
   if (!admin) redirect("/login");
-  const houseNumber = requireNumber(formData.get("houseNumber"));
+  const locationId = String(formData.get("locationId") || "");
+  const location = getHouseLocation(locationId);
   const count = requireNumber(formData.get("count"));
   const note = String(formData.get("note") || "").trim();
-  if (!allHouseNumbers.includes(houseNumber) || count < 1) throw new Error("Datos invalidos");
-  await saveParticipant({ houseNumber, count, note });
+  if (!location || !allHouseLocationIds.includes(locationId) || count < 1) throw new Error("Datos invalidos");
+  await saveParticipant({
+    locationId,
+    street: location.street,
+    houseNumber: location.houseNumber,
+    count,
+    note
+  });
   revalidatePath("/");
   revalidatePath("/admin");
 }
@@ -42,7 +49,7 @@ export async function upsertParticipantAction(formData: FormData) {
 export async function deleteParticipantAction(formData: FormData) {
   const admin = await getAdminUser();
   if (!admin) redirect("/login");
-  await deleteParticipant(requireNumber(formData.get("houseNumber")));
+  await deleteParticipant(String(formData.get("locationId") || ""));
   revalidatePath("/");
   revalidatePath("/admin");
 }

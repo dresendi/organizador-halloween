@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import { mapBlocks } from "@/lib/map-data";
+import { createLocationId, mapBlocks } from "@/lib/map-data";
 import type { Participant } from "@/lib/types";
 
 type Props = {
@@ -28,7 +28,7 @@ const gridStyle: CSSProperties = {
 };
 
 export function HalloweenMap({ participants, admin = false }: Props) {
-  const participantByHouse = new Map(participants.map((participant) => [participant.houseNumber, participant]));
+  const participantByLocation = new Map(participants.map((participant) => [participant.locationId, participant]));
   const upperBlocks = mapBlocks.slice(0, 5);
   const lowerBlocks = mapBlocks.slice(5);
 
@@ -66,9 +66,9 @@ export function HalloweenMap({ participants, admin = false }: Props) {
         <div className="block-grid top-neighborhood" style={gridStyle}>
           {upperBlocks.map((block) => (
             <article className="map-block" key={block.id}>
-              <HouseRow houses={block.top} participantByHouse={participantByHouse} admin={admin} />
+              <HouseRow houses={block.top} street="Calle 57" participantByLocation={participantByLocation} admin={admin} />
               <div className="block-yard" aria-hidden="true" />
-              <HouseRow houses={block.bottom} participantByHouse={participantByHouse} admin={admin} />
+              <HouseRow houses={block.bottom} street="Calle 57" participantByLocation={participantByLocation} admin={admin} />
             </article>
           ))}
         </div>
@@ -76,8 +76,8 @@ export function HalloweenMap({ participants, admin = false }: Props) {
         <div className="block-grid middle-neighborhood" style={{ ...gridStyle, marginTop: 46 }}>
           {upperBlocks.map((block) => (
             <article className="map-block compact" key={`${block.id}-middle`} style={{ display: "grid", gap: 24 }}>
-              <HouseRow houses={block.top} participantByHouse={participantByHouse} admin={admin} />
-              <HouseRow houses={block.bottom} participantByHouse={participantByHouse} admin={admin} />
+              <HouseRow houses={block.top} street="Calle 57B" participantByLocation={participantByLocation} admin={admin} />
+              <HouseRow houses={block.bottom} street="Calle 57B" participantByLocation={participantByLocation} admin={admin} />
             </article>
           ))}
         </div>
@@ -85,9 +85,9 @@ export function HalloweenMap({ participants, admin = false }: Props) {
         <div className="block-grid bottom-neighborhood" style={{ ...gridStyle, marginTop: 46 }}>
           {lowerBlocks.map((block) => (
             <article className="map-block" key={block.id}>
-              <HouseRow houses={block.top} participantByHouse={participantByHouse} admin={admin} />
+              <HouseRow houses={block.top} street="Calle 59" participantByLocation={participantByLocation} admin={admin} />
               <div className="block-yard" aria-hidden="true" />
-              <HouseRow houses={block.bottom} participantByHouse={participantByHouse} admin={admin} />
+              <HouseRow houses={block.bottom} street="Calle 59" participantByLocation={participantByLocation} admin={admin} />
             </article>
           ))}
         </div>
@@ -149,17 +149,19 @@ function StreetLabel({
 
 function HouseRow({
   houses,
-  participantByHouse,
+  street,
+  participantByLocation,
   admin
 }: {
   houses: { number: number }[];
-  participantByHouse: Map<number, Participant>;
+  street: string;
+  participantByLocation: Map<string, Participant>;
   admin: boolean;
 }) {
   return (
     <div className="house-row">
       {houses.map((house) => {
-        const participant = participantByHouse.get(house.number);
+        const participant = participantByLocation.get(createLocationId(street, house.number));
         return (
           <div className={`house ${participant ? "participating" : ""}`} key={house.number}>
             <strong>{house.number}</strong>
@@ -167,7 +169,7 @@ function HouseRow({
               <span
                 className="pumpkin"
                 title={`${participant.count} participante(s) registrados`}
-                aria-label={`${house.number} participa con ${participant.count} participante(s)`}
+                aria-label={`${street} ${house.number} participa con ${participant.count} participante(s)`}
               >
                 {"\u{1F383}"}
               </span>

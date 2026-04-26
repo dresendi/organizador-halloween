@@ -29,16 +29,51 @@ export const allHouseNumbers = Array.from(
   new Set(mapBlocks.flatMap((block) => [...block.top, ...block.bottom].map((house) => house.number)))
 ).sort((a, b) => b - a);
 
+export type HouseLocation = {
+  locationId: string;
+  street: string;
+  houseNumber: number;
+};
+
+export const mapStreets = ["Calle 57", "Calle 57B", "Calle 59"] as const;
+
+export function createLocationId(street: string, houseNumber: number) {
+  return `${street.toLowerCase().replace(/\s+/g, "-")}-${houseNumber}`;
+}
+
+export const allHouseLocations: HouseLocation[] = mapStreets.flatMap((street) =>
+  allHouseNumbers.map((houseNumber) => ({
+    locationId: createLocationId(street, houseNumber),
+    street,
+    houseNumber
+  }))
+);
+
+export const allHouseLocationIds = allHouseLocations.map((location) => location.locationId);
+
+const houseLocationById = new Map(allHouseLocations.map((location) => [location.locationId, location]));
+
 const primaryStreetSectors = mapBlocks.slice(0, 5).flatMap((block) =>
   [...block.top, ...block.bottom].map((house) => [house.number, block.label] as const)
 );
 
-const houseStreetByNumber = new Map<number, string>(primaryStreetSectors);
-
 export function getHouseStreetLabel(houseNumber: number) {
-  return houseStreetByNumber.get(houseNumber) || "Calle sin asignar";
+  return new Map<number, string>(primaryStreetSectors).get(houseNumber) || "Calle sin asignar";
 }
 
-export function formatHouseLocation(houseNumber: number) {
-  return `${getHouseStreetLabel(houseNumber)} - Casa ${houseNumber}`;
+export function getHouseLocation(locationId: string) {
+  return houseLocationById.get(locationId);
+}
+
+export function getDefaultLocationForHouse(houseNumber: number) {
+  return getHouseLocation(createLocationId("Calle 57B", houseNumber)) || allHouseLocations[0];
+}
+
+export function formatHouseLocationByParts(street: string, houseNumber: number) {
+  return `${street} - ${houseNumber}`;
+}
+
+export function formatHouseLocation(locationId: string) {
+  const location = getHouseLocation(locationId);
+  return location ? formatHouseLocationByParts(location.street, location.houseNumber) : "Ubicacion sin asignar";
 }

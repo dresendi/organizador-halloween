@@ -26,14 +26,26 @@ AUTH_SECRET=una-cadena-larga-y-secreta
 Estructura creada en MongoDB:
 
 - `participant_houses`: casas participantes.
-  - `houseNumber`: numero de casa, con indice unico.
+  - `locationId`: identificador unico de calle y numero.
+  - `street`: calle del croquis, por ejemplo `Calle 57B`.
+  - `houseNumber`: numero de casa.
   - `participantCount`: numero de participantes de esa casa.
   - `note`: nota opcional.
   - `createdAt` y `updatedAt`.
 - `site_content`: noticias y reglas publicas.
   - Documento `_id: "main"` con `news`, `rules` y `updatedAt`.
+- `house_locations`: catalogo inicial de ubicaciones disponibles.
+  - `locationId`, `street`, `houseNumber` y `label`.
 
 Si existe la coleccion vieja `site_data`, la app migra esos datos automaticamente a las nuevas colecciones cuando MongoDB este disponible.
+
+Para inicializar o reparar la estructura en Mongo Atlas desde local:
+
+```bash
+npm.cmd run db:init
+```
+
+El script usa `MONGODB_URI` y `DB_NAME` desde `.env.local` o desde el entorno.
 
 ## Administradores iniciales
 

@@ -1,9 +1,12 @@
 import fs from "fs/promises";
 import path from "path";
 import type { Collection, Db, MongoClient } from "mongodb";
+import { createLocationId, getDefaultLocationForHouse } from "./map-data";
 import type { HalloweenData, Participant, SiteContent } from "./types";
 
 type ParticipantDocument = {
+  locationId: string;
+  street: string;
   houseNumber: number;
   participantCount: number;
   note?: string;
@@ -25,16 +28,16 @@ type MongoContext = {
 
 const defaultData: HalloweenData = {
   participants: [
-    { houseNumber: 813, count: 4, updatedAt: new Date().toISOString() },
-    { houseNumber: 799, count: 3, updatedAt: new Date().toISOString() },
-    { houseNumber: 779, count: 5, updatedAt: new Date().toISOString() },
-    { houseNumber: 761, count: 2, updatedAt: new Date().toISOString() },
-    { houseNumber: 747, count: 6, updatedAt: new Date().toISOString() },
-    { houseNumber: 741, count: 2, updatedAt: new Date().toISOString() },
-    { houseNumber: 790, count: 3, updatedAt: new Date().toISOString() },
-    { houseNumber: 776, count: 4, updatedAt: new Date().toISOString() },
-    { houseNumber: 759, count: 2, updatedAt: new Date().toISOString() },
-    { houseNumber: 748, count: 5, updatedAt: new Date().toISOString() }
+    defaultParticipant("Calle 57B", 813, 4),
+    defaultParticipant("Calle 57B", 799, 3),
+    defaultParticipant("Calle 57B", 779, 5),
+    defaultParticipant("Calle 57B", 761, 2),
+    defaultParticipant("Calle 57B", 747, 6),
+    defaultParticipant("Calle 57B", 741, 2),
+    defaultParticipant("Calle 57", 790, 3),
+    defaultParticipant("Calle 57", 776, 4),
+    defaultParticipant("Calle 57", 759, 2),
+    defaultParticipant("Calle 59", 748, 5)
   ],
   content: {
     news: [
@@ -48,6 +51,16 @@ const defaultData: HalloweenData = {
     ]
   }
 };
+
+function defaultParticipant(street: string, houseNumber: number, count: number): Participant {
+  return {
+    locationId: createLocationId(street, houseNumber),
+    street,
+    houseNumber,
+    count,
+    updatedAt: new Date().toISOString()
+  };
+}
 
 const localDataDirectory = process.env.VERCEL ? "/tmp" : path.join(process.cwd(), "data");
 const dataFile = path.join(localDataDirectory, "halloween-data.json");
@@ -77,8 +90,11 @@ async function getMongoContext(): Promise<MongoContext | null> {
 
 async function ensureMongoSchema({ participants, content }: MongoContext) {
   if (indexesReady) return;
+  await participants.dropIndex("unique_house_number").catch(() => undefined);
+  await migrateExistingParticipantDocuments(participants);
   await Promise.all([
-    participants.createIndex({ houseNumber: 1 }, { unique: true, name: "unique_house_number" }),
+    participants.createIndex({ locationId: 1 }, { unique: true, name: "unique_location_id" }),
+    participants.createIndex({ street: 1, houseNumber: 1 }, { name: "street_house_number" }),
     participants.createIndex({ updatedAt: -1 }, { name: "updated_at_desc" }),
     content.updateOne(
       { _id: "main" },
@@ -93,6 +109,32 @@ async function ensureMongoSchema({ participants, content }: MongoContext) {
     )
   ]);
   indexesReady = true;
+}
+
+async function migrateExistingParticipantDocuments(participants: Collection<ParticipantDocument>) {
+  const oldParticipants = await participants.find({ locationId: { $exists: false } }).toArray();
+  if (oldParticipants.length === 0) return;
+
+  await participants.bulkWrite(
+    oldParticipants.map((participant) => {
+      const normalized = normalizeParticipant(participant);
+      return {
+        updateOne: {
+          filter: { _id: participant._id },
+          update: {
+            $set: {
+              locationId: normalized.locationId,
+              street: normalized.street,
+              houseNumber: normalized.houseNumber,
+              participantCount: normalized.count,
+              note: normalized.note,
+              updatedAt: new Date(normalized.updatedAt)
+            }
+          }
+        }
+      };
+    })
+  );
 }
 
 async function ensureSrvCanResolve(uri: string) {
@@ -114,7 +156,11 @@ function logMongoFallback(error: unknown) {
 async function readLocalData(): Promise<HalloweenData> {
   try {
     const raw = await fs.readFile(dataFile, "utf8");
-    return JSON.parse(raw) as HalloweenData;
+    const data = JSON.parse(raw) as HalloweenData;
+    return {
+      ...data,
+      participants: data.participants.map(normalizeParticipant)
+    };
   } catch {
     await writeLocalData(defaultData);
     return defaultData;
@@ -127,17 +173,47 @@ async function writeLocalData(data: HalloweenData) {
 }
 
 function fromParticipantDocument(document: ParticipantDocument): Participant {
+  const normalized = normalizeParticipant(document);
   return {
-    houseNumber: document.houseNumber,
-    count: document.participantCount,
-    note: document.note,
-    updatedAt: document.updatedAt.toISOString()
+    locationId: normalized.locationId,
+    street: normalized.street,
+    houseNumber: normalized.houseNumber,
+    count: normalized.count,
+    note: normalized.note,
+    updatedAt: normalized.updatedAt
+  };
+}
+
+function normalizeParticipant(
+  participant: Partial<Omit<ParticipantDocument, "updatedAt">> &
+    Partial<Omit<Participant, "updatedAt">> & {
+    count?: number;
+    participantCount?: number;
+    updatedAt?: Date | string;
+  }
+): Participant {
+  const houseNumber = Number(participant.houseNumber);
+  const fallbackLocation = getDefaultLocationForHouse(houseNumber);
+  const street = participant.street || fallbackLocation.street;
+  const locationId = participant.locationId || createLocationId(street, houseNumber);
+  const updatedAt =
+    participant.updatedAt instanceof Date
+      ? participant.updatedAt.toISOString()
+      : participant.updatedAt || new Date().toISOString();
+
+  return {
+    locationId,
+    street,
+    houseNumber,
+    count: Number(participant.participantCount ?? participant.count ?? 1),
+    note: participant.note,
+    updatedAt
   };
 }
 
 async function getMongoData(context: MongoContext): Promise<HalloweenData> {
   const [participants, content] = await Promise.all([
-    context.participants.find({}).sort({ houseNumber: -1 }).toArray(),
+    context.participants.find({}).sort({ street: 1, houseNumber: -1 }).toArray(),
     context.content.findOne({ _id: "main" })
   ]);
 
@@ -161,13 +237,18 @@ async function migrateLegacySiteData(context: MongoContext): Promise<HalloweenDa
 
   if (legacy.participants.length > 0) {
     await context.participants.insertMany(
-      legacy.participants.map((participant) => ({
-        houseNumber: participant.houseNumber,
-        participantCount: participant.count,
-        note: participant.note,
-        createdAt: now,
-        updatedAt: participant.updatedAt ? new Date(participant.updatedAt) : now
-      })),
+      legacy.participants.map((participant) => {
+        const normalized = normalizeParticipant(participant);
+        return {
+          locationId: normalized.locationId,
+          street: normalized.street,
+          houseNumber: normalized.houseNumber,
+          participantCount: normalized.count,
+          note: normalized.note,
+          createdAt: now,
+          updatedAt: normalized.updatedAt ? new Date(normalized.updatedAt) : now
+        };
+      }),
       { ordered: false }
     );
   }
@@ -191,6 +272,8 @@ async function seedDefaultParticipants(context: MongoContext) {
   const now = new Date();
   await context.participants.insertMany(
     defaultData.participants.map((participant) => ({
+      locationId: participant.locationId,
+      street: participant.street,
       houseNumber: participant.houseNumber,
       participantCount: participant.count,
       note: participant.note,
@@ -224,15 +307,17 @@ export async function saveParticipant(participant: Omit<Participant, "updatedAt"
       try {
         const now = new Date();
         await mongo.participants.updateOne(
-          { houseNumber: participant.houseNumber },
+          { locationId: participant.locationId },
           {
             $set: {
+              street: participant.street,
+              houseNumber: participant.houseNumber,
               participantCount: participant.count,
               note: participant.note,
               updatedAt: now
             },
             $setOnInsert: {
-              houseNumber: participant.houseNumber,
+              locationId: participant.locationId,
               createdAt: now
             }
           },
@@ -250,18 +335,18 @@ export async function saveParticipant(participant: Omit<Participant, "updatedAt"
   const data = await readLocalData();
   const next: Participant = { ...participant, updatedAt: new Date().toISOString() };
   data.participants = [
-    ...data.participants.filter((item) => item.houseNumber !== participant.houseNumber),
+    ...data.participants.filter((item) => item.locationId !== participant.locationId),
     next
-  ].sort((a, b) => b.houseNumber - a.houseNumber);
+  ].sort((a, b) => a.street.localeCompare(b.street) || b.houseNumber - a.houseNumber);
   await writeLocalData(data);
 }
 
-export async function deleteParticipant(houseNumber: number) {
+export async function deleteParticipant(locationId: string) {
   try {
     const mongo = await getMongoContext();
     if (mongo) {
       try {
-        await mongo.participants.deleteOne({ houseNumber });
+        await mongo.participants.deleteOne({ locationId });
         return;
       } finally {
         await mongo.client.close();
@@ -272,7 +357,7 @@ export async function deleteParticipant(houseNumber: number) {
   }
 
   const data = await readLocalData();
-  data.participants = data.participants.filter((item) => item.houseNumber !== houseNumber);
+  data.participants = data.participants.filter((item) => item.locationId !== locationId);
   await writeLocalData(data);
 }
 

@@ -1,4 +1,6 @@
 export type Participant = {
+  locationId: string;
+  street: string;
   houseNumber: number;
   count: number;
   note?: string;
