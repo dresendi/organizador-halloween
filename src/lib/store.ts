@@ -153,6 +153,16 @@ function logMongoFallback(error: unknown) {
   console.warn(`MongoDB no disponible, usando almacenamiento local: ${message}`);
 }
 
+function isVercelRuntime() {
+  return Boolean(process.env.VERCEL);
+}
+
+function assertLocalWriteAllowed() {
+  if (isVercelRuntime()) {
+    throw new Error("MongoDB no esta disponible; no se guardo el cambio en Atlas.");
+  }
+}
+
 async function readLocalData(): Promise<HalloweenData> {
   try {
     const raw = await fs.readFile(dataFile, "utf8");
@@ -332,6 +342,7 @@ export async function saveParticipant(participant: Omit<Participant, "updatedAt"
     logMongoFallback(error);
   }
 
+  assertLocalWriteAllowed();
   const data = await readLocalData();
   const next: Participant = { ...participant, updatedAt: new Date().toISOString() };
   data.participants = [
@@ -356,6 +367,7 @@ export async function deleteParticipant(locationId: string) {
     logMongoFallback(error);
   }
 
+  assertLocalWriteAllowed();
   const data = await readLocalData();
   data.participants = data.participants.filter((item) => item.locationId !== locationId);
   await writeLocalData(data);
@@ -380,6 +392,7 @@ export async function saveContent(news: string[], rules: string[]) {
     logMongoFallback(error);
   }
 
+  assertLocalWriteAllowed();
   const data = await readLocalData();
   data.content = { news, rules };
   await writeLocalData(data);
